@@ -972,7 +972,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 else:
                     _user = self.users.search(user_name)
                     if _user is None:
-                        self.send_chat_msg('No user named: *%s*' % user_name)
+                        self.send_chat_msg('No user named: %s' % user_name)
                     elif _user.user_level < self.active_user.user_level:
                         self.send_chat_msg('Not allowed.')
                     else:
@@ -1002,7 +1002,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 else:
                     _user = self.users.search(user_name)
                     if _user is None:
-                        self.send_chat_msg('No user named: *%s*' % user_name)
+                        self.send_chat_msg('No user named: %s' % user_name)
                     elif _user.user_level < self.active_user.user_level:
                         self.send_chat_msg('Not allowed.')
                     else:
@@ -1139,27 +1139,27 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     if len(pinylib.CONFIG.B_NICK_BANS) is 0:
                         self.send_chat_msg('No items in this list.')
                     else:
-                        self.send_chat_msg('%s *nicks bans in list.*' % len(pinylib.CONFIG.B_NICK_BANS))
+                        self.send_chat_msg('%s nicks bans in list.' % len(pinylib.CONFIG.B_NICK_BANS))
 
                 elif list_type.lower() == 'bs':
                     if len(pinylib.CONFIG.B_STRING_BANS) is 0:
                         self.send_chat_msg('No items in this list.')
                     else:
-                        self.send_chat_msg('%s *string bans in list.*' % pinylib.CONFIG.B_STRING_BANS)
+                        self.send_chat_msg('%s string bans in list.' % pinylib.CONFIG.B_STRING_BANS)
 
                 elif list_type.lower() == 'ba':
                     if len(pinylib.CONFIG.B_ACCOUNT_BANS) is 0:
                         self.send_chat_msg('No items in this list.')
                     else:
-                        self.send_chat_msg('%s *account bans in list.*' % pinylib.CONFIG.B_ACCOUNT_BANS)
+                        self.send_chat_msg('%s account bans in list.' % pinylib.CONFIG.B_ACCOUNT_BANS)
 
                 elif list_type.lower() == 'mods':
                     if self.is_client_owner:
                         if len(self.privacy_.room_moderators) is 0:
-                            self.send_chat_msg('*There is currently no moderators for this room.*')
+                            self.send_chat_msg('There is currently no moderators for this room.')
                         elif len(self.privacy_.room_moderators) is not 0:
                             mods = ', '.join(self.privacy_.room_moderators)
-                            self.send_chat_msg('*Moderators:* ' + mods)
+                            self.send_chat_msg('Moderators: ' + mods)
 
     def do_user_info(self, user_name):
         """ 
@@ -1521,7 +1521,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
             self.send_private_msg(self.active_user.id, 'Wrong key.')
 
     # Timer Related.
-    def timer_event(self):  # media_event_handler
+    def timer_event(self):
         """ This gets called when the timer has reached the time. """
         if len(self.playlist.track_list) > 0:
             if self.playlist.is_last_track:
@@ -1534,7 +1534,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.send_yut_play(track.id, track.time)
                 self.timer(track.time)
 
-    def timer(self, event_time):  # media_event_timer
+    def timer(self, event_time):
         """
         Track event timer.
         
@@ -1546,7 +1546,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
         self.timer_thread = threading.Timer(event_time, self.timer_event)
         self.timer_thread.start()
 
-    def cancel_timer(self):  # cancel_media_event_timer
+    def cancel_timer(self):
         """ Cancel the track timer. """
         if self.timer_thread is not None:
             if self.timer_thread.is_alive():
