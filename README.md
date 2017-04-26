@@ -14,7 +14,7 @@ tinybot-rtc was developed using [python 2.7.10](https://www.python.org/downloads
 
 ### Requirements
 
-tinybot-rtc reqires pinylib-rtc and its [requirements](https://github.com/nortxort/pinylib/wiki/Requirements "pinylib requirements").
+tinybot-rtc reqires pinylib-rtc and its [requirements](https://github.com/nortxort/pinylib-rtc/blob/master/README.md#requirements "pinylib requirements").
 
 Next download [pinylib-rtc](https://github.com/nortxort/pinylib-rtc/archive/master.zip "pinylib-rtc module") and [tinybot-rtc](https://github.com/nortxort/tinybot-rtc/archive/master.zip "pinylib-rtc extension module") and unpack them. Now copy the **contents of the folders in tinybot-rtc to the coresponding folders inside pinylib-rtc**. Meaning, the content of the folder named *e.g* util in tinybot-rtc should be placed in pinylib-rtc's util folder and so on. If a folder inside tinybot-rtc does not exist inside pinylib-rtc, then the whole folder and it's content is copied in to pinylib-rtc. Place the files in the root folder of tinybot-rtc in the root folder of pinylib-rtc, overwriting files if necessary.
 
