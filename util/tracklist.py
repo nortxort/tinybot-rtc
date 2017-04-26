@@ -19,8 +19,8 @@ class PlayList:
     """ Class to do various playlist operation with. """
     def __init__(self):
         self.track_list = []
-        self.track_index = 0  # track_list_index
-        self.current_track = None  # current_media
+        self.track_index = 0
+        self.current_track = None
         self.is_paused = False
 
     @property
@@ -34,7 +34,7 @@ class PlayList:
         return self.current_track
 
     @property
-    def current_index(self):  # current_track_index
+    def current_index(self):
         """
         Return the current track list index.
         
@@ -44,7 +44,7 @@ class PlayList:
         return self.track_index
 
     @property
-    def last_index(self):  # last_track_index
+    def last_index(self):
         """
         Return the last index of the track list.
         
@@ -73,7 +73,7 @@ class PlayList:
         return False
 
     @property
-    def elapsed(self):  # elapsed_track_time
+    def elapsed(self):
         """
         Returns the current track elapsed time.
         
@@ -90,7 +90,7 @@ class PlayList:
         return 0
 
     @property
-    def remaining(self):  # remaining_time
+    def remaining(self):
         """
         Returns the current track remaining time.
         
@@ -103,7 +103,7 @@ class PlayList:
         return 0
 
     @property
-    def next_track(self):  # get_next_track
+    def next_track(self):
         """
         Returns the next track in the track list
         
@@ -113,7 +113,6 @@ class PlayList:
         if len(self.track_list) > 0:
             if self.track_index <= len(self.track_list):  # self.last_index:
                 next_track = self.track_list[self.track_index]
-                # self.we_play(next_track)
                 self.current_track = next_track
                 self.current_track.start_time = time.time()
                 self.track_index += 1
@@ -209,7 +208,7 @@ class PlayList:
         self.current_track.start_time = 0
         self.current_track.pause_time = 0
 
-    def add(self, owner, track):  # add_track
+    def add(self, owner, track):
         """
         Add a track to the track list.
         
@@ -225,7 +224,7 @@ class PlayList:
             self.track_list.append(_track)
             return _track
 
-    def add_list(self, owner, tracks):  # add_track_list
+    def add_list(self, owner, tracks):
         """
         Add a list of track data to the track list.
         
@@ -238,7 +237,7 @@ class PlayList:
             for track in tracks:
                 self.add(owner, track)
 
-    def clear(self):  # clear_track_list
+    def clear(self):
         """
         Clear the track list for all items.
         
@@ -251,7 +250,7 @@ class PlayList:
             return True
         return False
 
-    def get_tracks(self, amount=5, from_index=True):  # get_track_list
+    def get_tracks(self, amount=5, from_index=True):
         """
         Get a list of Track's from the track list.
         
