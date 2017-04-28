@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 
 
-__version__ = '1.0.0 (RTC)'
+__version__ = '1.0.1 (RTC)'
 log = logging.getLogger(__name__)
 
 
