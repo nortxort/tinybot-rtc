@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 
 
-__version__ = '1.0.1 (RTC)'
+__version__ = '1.0.2 (RTC)'
 log = logging.getLogger(__name__)
 
 
@@ -53,56 +53,55 @@ class TinychatBot(pinylib.TinychatRTCClient):
         """
         log.info('user join info: %s' % join_info)
         _user = self.users.add(join_info)
-        if _user is not None:
-            if _user.account:
-                tc_info = pinylib.apis.tinychat.user_info(_user.account)
-                if tc_info is not None:
-                    _user.tinychat_id = tc_info['tinychat_id']
-                    _user.last_login = tc_info['last_active']
-                if _user.is_owner:
-                    _user.user_level = 1
-                    self.console_write(pinylib.COLOR['red'], 'Room Owner %s:%d:%s' %
-                                       (_user.nick, _user.id, _user.account))
-                elif _user.is_mod:
-                    _user.user_level = 3
-                    self.console_write(pinylib.COLOR['bright_red'], 'Moderator %s:%d:%s' %
-                                       (_user.nick, _user.id, _user.account))
-                else:
-                    self.console_write(pinylib.COLOR['bright_yellow'], '%s:%d has account: %s' %
-                                       (_user.nick, _user.id, _user.account))
-
-                    if _user.account in pinylib.CONFIG.B_ACCOUNT_BANS and self.is_client_mod:
-                        if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
-                            self.send_kick_msg(_user.id)
-                        else:
-                            self.send_ban_msg(_user.id)
-                        self.send_chat_msg('Auto-Banned: (bad account)')
-
+        if _user.account:
+            if _user.is_owner:
+                _user.user_level = 1
+                self.console_write(pinylib.COLOR['red'], 'Room Owner %s:%d:%s' %
+                                   (_user.nick, _user.id, _user.account))
+            elif _user.is_mod:
+                _user.user_level = 3
+                self.console_write(pinylib.COLOR['bright_red'], 'Moderator %s:%d:%s' %
+                                   (_user.nick, _user.id, _user.account))
             else:
-                if _user.is_lurker and not pinylib.CONFIG.B_ALLOW_LURKERS and self.is_client_mod:
+                self.console_write(pinylib.COLOR['bright_yellow'], '%s:%d has account: %s' %
+                                   (_user.nick, _user.id, _user.account))
+
+                if _user.account in pinylib.CONFIG.B_ACCOUNT_BANS and self.is_client_mod:
                     if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
                         self.send_kick_msg(_user.id)
                     else:
                         self.send_ban_msg(_user.id)
-                    self.send_chat_msg('Auto-Banned: (lurkers not allowed)')
-
-                elif not pinylib.CONFIG.B_ALLOW_GUESTS and self.is_client_mod:
-                    if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
-                        self.send_kick_msg(_user.id)
-                    else:
-                        self.send_ban_msg(_user.id)
-                    self.send_chat_msg('Auto-Banned: (guests not allowed)')
-
+                    self.send_chat_msg('Auto-Banned: (bad account)')
                 else:
-                    if pinylib.CONFIG.B_GREET and self.is_client_mod:
-                        if not _user.nick.startswith('guest-'):
-                            if _user.account:
-                                self.send_chat_msg('Welcome to the room %s:%s:%s' %
-                                                   (_user.nick, _user.id, _user.account))
-                            else:
-                                self.send_chat_msg('Welcome to the room %s:%s' % (_user.nick, _user.id))
+                    tc_info = pinylib.apis.tinychat.user_info(_user.account)
+                    if tc_info is not None:
+                        _user.tinychat_id = tc_info['tinychat_id']
+                        _user.last_login = tc_info['last_active']
 
-                    self.console_write(pinylib.COLOR['cyan'], '%s:%d joined the room.' % (_user.nick, _user.id))
+        else:
+            if _user.is_lurker and not pinylib.CONFIG.B_ALLOW_LURKERS and self.is_client_mod:
+                if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
+                    self.send_kick_msg(_user.id)
+                else:
+                    self.send_ban_msg(_user.id)
+                self.send_chat_msg('Auto-Banned: (lurkers not allowed)')
+
+            elif not pinylib.CONFIG.B_ALLOW_GUESTS and self.is_client_mod:
+                if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
+                    self.send_kick_msg(_user.id)
+                else:
+                    self.send_ban_msg(_user.id)
+                self.send_chat_msg('Auto-Banned: (guests not allowed)')
+
+        if pinylib.CONFIG.B_GREET and self.is_client_mod:
+            if not _user.nick.startswith('guest-'):
+                if _user.account:
+                    self.send_chat_msg('Welcome to the room %s:%s:%s' %
+                                       (_user.nick, _user.id, _user.account))
+                else:
+                    self.send_chat_msg('Welcome to the room %s:%s' % (_user.nick, _user.id))
+
+        self.console_write(pinylib.COLOR['cyan'], '%s:%d joined the room.' % (_user.nick, _user.id))
 
     def on_nick(self, uid, nick):
         """
