@@ -591,7 +591,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
         :type chart_items: str | int
         """
         if self.is_client_mod:
-            if chart_items == 0 or chart_items is None:
+            if len(chart_items) == 0 or chart_items is None:
                 self.send_chat_msg('Please specify the max amount of tracks you want.')
             else:
                 try:
@@ -622,7 +622,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
         :type max_tracks: str | int
         """
         if self.is_client_mod:
-            if max_tracks == 0 or max_tracks is None:
+            if len(max_tracks) == 0 or max_tracks is None:
                 self.send_chat_msg('Please specify the max amount of tunes you want.')
             else:
                 try:
@@ -653,7 +653,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
         :type search_str: str
         """
         if self.is_client_mod:
-            if len(search_str) == 0:
+            if len(search_str) == 0 or search_str is None:
                 self.send_chat_msg('Missing search string.')
             else:
                 self.send_chat_msg('Please wait while creating playlist..')
