@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 
 
-__version__ = '1.0.2 (RTC)'
+__version__ = '1.0.3 (RTC)'
 log = logging.getLogger(__name__)
 
 
@@ -969,7 +969,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                                 if i <= pinylib.CONFIG.B_MAX_MATCH_BANS - 1:
                                     self.send_kick_msg(user.id)
                 else:
-                    _user = self.users.search(user_name)
+                    _user = self.users.search_by_nick(user_name)
                     if _user is None:
                         self.send_chat_msg('No user named: %s' % user_name)
                     elif _user.user_level < self.active_user.user_level:
@@ -999,7 +999,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                                 if i <= pinylib.CONFIG.B_MAX_MATCH_BANS - 1:
                                     self.send_ban_msg(user.id)
                 else:
-                    _user = self.users.search(user_name)
+                    _user = self.users.search_by_nick(user_name)
                     if _user is None:
                         self.send_chat_msg('No user named: %s' % user_name)
                     elif _user.user_level < self.active_user.user_level:
