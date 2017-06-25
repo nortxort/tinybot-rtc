@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 
 
-__version__ = '1.0.3 (RTC)'
+__version__ = '1.0.4 (RTC)'
 log = logging.getLogger(__name__)
 
 
@@ -344,6 +344,12 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 elif cmd == prefix + 'uinfo':
                     self.do_user_info(cmd_arg)
 
+                elif cmd == prefix + 'cam':
+                    self.do_cam_approve(cmd_arg)
+
+                elif cmd == prefix + 'close':
+                    self.do_close_broadcast(cmd_arg)
+
             if (pinylib.CONFIG.B_PUBLIC_CMD and self.has_level(5)) or self.active_user.user_level < 5:
                 if cmd == prefix + 'v':
                     self.do_version()
@@ -481,14 +487,13 @@ class TinychatBot(pinylib.TinychatRTCClient):
             if self.privacy_.clear_bans():
                 self.send_chat_msg('All room bans was cleared.')
 
-    def do_kill(self):  # TODO: Fix this.
+    def do_kill(self):
         """ Kills the bot. """
         self.disconnect()
 
-    def do_reboot(self):  # TODO: Fix this.
+    def do_reboot(self):
         """ Reboots the bot. """
-        # self.reconnect()
-        self.send_chat_msg('!Not implemented!')
+        self.reconnect()
 
     # Level 2 Command Methods.
     def do_media_info(self):
@@ -1193,6 +1198,40 @@ class TinychatBot(pinylib.TinychatRTCClient):
                         info.append('Last Login: ' + _user.last_login)
 
                     self.send_chat_msg('\n'.join(info))
+
+    def do_cam_approve(self, user_name):
+        """
+        Allow a user to broadcast in a green room enabled room.
+
+        :param user_name:  The name of the user allowed to broadcast.
+        :type user_name: str
+        """
+        if self.is_green_room and self.is_client_mod:
+            if len(user_name) == 0 and self.active_user.is_waiting:
+                self.send_cam_approve_msg(self.active_user.id)
+            elif len(user_name) > 0:
+                _user = self.users.search_by_nick(user_name)
+                if _user is not None and _user.is_waiting:
+                    self.send_cam_approve_msg(_user.id)
+                else:
+                    self.send_chat_msg('No user named: %s' % user_name)
+
+    def do_close_broadcast(self, user_name):
+        """
+        Close a users broadcast.
+
+        :param user_name: The name of the user to close.
+        :type user_name: str
+        """
+        if self.is_client_mod:
+            if len(user_name) == 0:
+                self.send_chat_msg('Mising user name.')
+            else:
+                _user = self.users.search_by_nick(user_name)
+                if _user is not None and _user.is_broadcasting:
+                    self.send_close_user_msg(_user.id)
+                else:
+                    self.send_chat_msg('No user named: %s' % user_name)
 
     # Public (Level 5) Command Methods.
     def do_playlist_status(self):

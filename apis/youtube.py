@@ -105,6 +105,7 @@ def search_list(search_term, results=10):
 def playlist_search(search_term, results=5):
     """
     Searches youtube for a playlist matching the search term.
+
     :param search_term: str the search term to search to search for.
     :param results: int the number of playlist matches we want returned.
     :return: list[dict{'playlist_title', 'playlist_id'}] or None on failure.
@@ -121,7 +122,7 @@ def playlist_search(search_term, results=5):
                         if i == results:
                             return play_lists
                         playlist_id = item['id']['playlistId']
-                        playlist_title = item['snippet']['title'].encode('ascii', 'ignore')
+                        playlist_title = item['snippet']['title']  #
                         play_list_info = {
                             'playlist_title': playlist_title,
                             'playlist_id': playlist_id
@@ -137,6 +138,7 @@ def playlist_videos(playlist_id):
     Find the videos for a given playlist ID.
 
     The list returned will contain a maximum of 50 videos.
+
     :param playlist_id: str the playlist ID
     :return: list[dict{'type=youTube', 'video_id', 'video_title', 'video_time'}] or None on failure.
     """
@@ -170,9 +172,10 @@ def video_details(video_id, check=True):
     """
     Youtube helper function to get the video time for a given video id.
 
-    Checks a youtube video id to see if the video is blocked or allowed in the following countries:
-    USA, DENMARK and POLAND. If a video is blocked in one of the countries, None is returned.
-    If a video is NOT allowed in ONE of the countries, None is returned else the video time will be returned.
+    Checks a youtube video id to see if the video is blocked or allowed
+    in the ALLOWED_COUNTRIES list. If a video is blocked in one of the countries, 
+    None is returned. If a video is NOT allowed in ONE of the countries, 
+    None is returned else the video time will be returned.
 
     :param check: bool True = checks region restriction. False = no check will be done
     :param video_id: The youtube video id str to check.
@@ -201,8 +204,8 @@ def video_details(video_id, check=True):
                                              (video_id, allowed))
                                     return None
                     video_time = util.string_util.convert_to_seconds(contentdetails['duration'])
-                    video_title = response['json']['items'][0]['snippet']['title'].encode('ascii', 'ignore')
-                    thumb = response['json']['items'][0]['snippet']['thumbnails']['default']['url']
+                    video_title = response['json']['items'][0]['snippet']['title']  #
+                    thumb = response['json']['items'][0]['snippet']['thumbnails']['medium']['url']
 
                     return {
                         'type': 'youTube',
