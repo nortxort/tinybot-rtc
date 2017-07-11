@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 
 
-__version__ = '1.0.4 (RTC)'
+__version__ = '1.0.5 (RTC)'
 log = logging.getLogger(__name__)
 
 
@@ -144,23 +144,33 @@ class TinychatBot(pinylib.TinychatRTCClient):
         starting/searching the youtube, the youtube ID, youtube time and so on.
         :type yt_data: dict
         """
-        if yt_data['handle'] != self.client_id:
-            _user = self.users.search(yt_data['handle'])
-            if self.playlist.has_active_track:
-                self.cancel_timer()
-            if yt_data['item']['offset'] == 0:
-                # the video was started from the start. (start)
+        user_nick = 'n/a'
+        if 'handle' in yt_data:
+            if yt_data['handle'] != self.client_id:
+                _user = self.users.search(yt_data['handle'])
+                user_nick = _user.nick
+
+        if self.playlist.has_active_track:
+            self.cancel_timer()
+
+        if yt_data['item']['offset'] == 0:
+            # the video was started from the start. (start)
+            _youtube = youtube.video_details(yt_data['item']['id'], False)
+            self.playlist.start(user_nick, _youtube)
+            self.timer(self.playlist.track.time)
+            self.console_write(pinylib.COLOR['bright_magenta'], '%s started youtube video (%s)' %
+                               (user_nick, yt_data['item']['id']))
+        elif yt_data['item']['offset'] > 0:
+            if user_nick == 'n/a':
                 _youtube = youtube.video_details(yt_data['item']['id'], False)
-                self.playlist.start(_user.nick, _youtube)
-                self.timer(self.playlist.track.time)
-                self.console_write(pinylib.COLOR['bright_magenta'], '%s started youtube video (%s)' %
-                                   (_user.nick, yt_data['item']['id']))
-            elif yt_data['item']['offset'] > 0:
-                # the video was searched while still playing. (play)
+                self.playlist.start(user_nick, _youtube)
+                offset = self.playlist.play(yt_data['item']['offset'])
+                self.timer(offset)
+            else:
                 offset = self.playlist.play(yt_data['item']['offset'])
                 self.timer(offset)
                 self.console_write(pinylib.COLOR['bright_magenta'], '%s searched the youtube video to: %s' %
-                                   (_user.nick, int(round(yt_data['item']['offset']))))
+                                   (user_nick, int(round(yt_data['item']['offset']))))
 
     def on_yut_pause(self, yt_data):
         """
@@ -173,13 +183,14 @@ class TinychatBot(pinylib.TinychatRTCClient):
         pausing/searching the youtube, the youtube ID, youtube time and so on.
         :type yt_data: dict
         """
-        if yt_data['handle'] != self.client_id:
-            _user = self.users.search(yt_data['handle'])
-            if self.playlist.has_active_track:
-                self.cancel_timer()
-            self.playlist.pause()
-            self.console_write(pinylib.COLOR['bright_magenta'], '%s paused the video at %s' %
-                               (_user.nick, int(round(yt_data['item']['offset']))))
+        if 'handle' in yt_data:
+            if yt_data['handle'] != self.client_id:
+                _user = self.users.search(yt_data['handle'])
+                if self.playlist.has_active_track:
+                    self.cancel_timer()
+                self.playlist.pause()
+                self.console_write(pinylib.COLOR['bright_magenta'], '%s paused the video at %s' %
+                                   (_user.nick, int(round(yt_data['item']['offset']))))
 
     def message_handler(self, msg):
         """
