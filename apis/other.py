@@ -25,16 +25,17 @@ def weather_search(city):
     """
     Searches worldweatheronline's API for weather data for a given city.
     You must have a working API key to be able to use this function.
+
     :param city: The city str to search for.
     :return: weather data str or None on no match or error.
     """
     if str(city).strip():
-        api_key = '1a7c7025fa5dec52e070bbc5a7714'
+        api_key = ''
         if not api_key:
             return 'Missing api key.'
         else:
-            weather_api_url = 'http://api.worldweatheronline.com/free/v2/weather.ashx?' \
-                              'q=%s&format=json&key=%s' % (city, api_key)
+            weather_api_url = 'http://api.worldweatheronline.com/premium/v1/weather.ashx?key=%s&q=%s&format=json' % \
+                              (api_key, city)
 
             response = util.web.http_get(url=weather_api_url, json=True)
             if response['json'] is not None:

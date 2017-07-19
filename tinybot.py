@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 
 
-__version__ = '1.0.5 (RTC)'
+__version__ = '1.0.6 (RTC)'
 log = logging.getLogger(__name__)
 
 
@@ -622,7 +622,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                             self.send_chat_msg('Added ' + str(len(_items)) + 'tracks from last.fm chart.')
                             if not self.playlist.has_active_track:
                                 track = self.playlist.next_track
-                                self.send_yut_play(track.id, track.time)
+                                self.send_yut_play(track.id, track.time, track.title)
                                 self.timer(track.time)
                         else:
                             self.send_chat_msg('Failed to retrieve a result from last.fm.')
@@ -653,7 +653,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                             self.send_chat_msg('Added ' + str(len(_items)) + 'tracks from last.fm')
                             if not self.playlist.has_active_track:
                                 track = self.playlist.next_track
-                                self.send_yut_play(track.id, track.time)
+                                self.send_yut_play(track.id, track.time, track.title)
                                 self.timer(track.time)
                         else:
                             self.send_chat_msg('Failed to retrieve a result from last.fm.')
@@ -678,7 +678,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.send_chat_msg('Added ' + str(len(_items)) + 'tracks from last.fm')
                     if not self.playlist.has_active_track:
                         track = self.playlist.next_track
-                        self.send_yut_play(track.id, track.time)
+                        self.send_yut_play(track.id, track.time, track.title)
                         self.timer(track.time)
                 else:
                     self.send_chat_msg('Failed to retrieve a result from last.fm.')
@@ -724,7 +724,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                             self.send_chat_msg('Added %s tracks from youtube playlist.' % len(tracks))
                             if not self.playlist.has_active_track:
                                 track = self.playlist.next_track
-                                self.send_yut_play(track.id, track.time)
+                                self.send_yut_play(track.id, track.time, track.title)
                                 self.timer(track.time)
                         else:
                             self.send_chat_msg('Failed to retrieve videos from youtube playlist.')
@@ -757,7 +757,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
             else:
                 self.cancel_timer()
                 next_track = self.playlist.next_track
-                self.send_yut_play(next_track.id, next_track.time)
+                self.send_yut_play(next_track.id, next_track.time, next_track.title)
                 self.timer(next_track.time)
 
     def do_delete_playlist_item(self, to_delete):  # TODO: Make sure this is working.
@@ -812,7 +812,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
             if self.playlist.track is not None:
                 self.cancel_timer()
                 track = self.playlist.replay()
-                self.send_yut_play(track.id, track.time)
+                self.send_yut_play(track.id, track.time, track.title)
                 self.timer(track.time)
 
     def do_play_media(self):
@@ -823,7 +823,8 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.cancel_timer()
                 if self.playlist.is_paused:
                     self.playlist.play(self.playlist.elapsed)
-                    self.send_yut_play(self.playlist.track.id, self.playlist.track.time, self.playlist.elapsed)  #
+                    self.send_yut_play(self.playlist.track.id, self.playlist.track.time,
+                                       self.playlist.track.title, self.playlist.elapsed)  #
                     self.timer(self.playlist.remaining)
 
     def do_media_pause(self):
@@ -867,7 +868,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                                 self.send_yut_pause(track.id, track.time, offset)
                             else:
                                 self.playlist.play(offset)
-                                self.send_yut_play(track.id, track.time, offset)
+                                self.send_yut_play(track.id, track.time, track.title, offset)
                                 self.timer(self.playlist.remaining)
 
     def do_clear_playlist(self):
@@ -935,7 +936,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                                                     track.title, self.format_time(track.time)))
                             else:
                                 track = self.playlist.start(self.active_user.nick, self.search_list[int_choice])
-                                self.send_yut_play(track.id, track.time)
+                                self.send_yut_play(track.id, track.time, track.title)
                                 self.timer(track.time)
                         else:
                             self.send_chat_msg('Please make a choice between 0-%s' % str(len(self.search_list) - 1))
@@ -1336,7 +1337,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                                            (self.playlist.last_index, track.title, self.format_time(track.time)))
                     else:
                         track = self.playlist.start(self.active_user.nick, _youtube)
-                        self.send_yut_play(track.id, track.time)
+                        self.send_yut_play(track.id, track.time, track.title)
                         self.timer(track.time)
 
     # == Tinychat API Command Methods. ==
@@ -1580,7 +1581,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
             else:
                 track = self.playlist.next_track
                 if track is not None and self.is_connected:
-                    self.send_yut_play(track.id, track.time)
+                    self.send_yut_play(track.id, track.time, track.title)
                 self.timer(track.time)
 
     def timer(self, event_time):
