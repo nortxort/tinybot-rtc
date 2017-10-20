@@ -8,9 +8,9 @@ import pinylib
 from util import tracklist
 from page import privacy
 from apis import youtube, lastfm, other, locals_
+import check_user
 
-
-__version__ = '1.0.6 (RTC)'
+__version__ = '2.0.0'
 log = logging.getLogger(__name__)
 
 
@@ -25,6 +25,45 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def config_path(self):
         """ Returns the path to the rooms configuration directory. """
         return pinylib.CONFIG.CONFIG_PATH + self.room_name + '/'
+
+    def user_check(self, user, account=False, guest=False, nick=False, lurker=False):
+        """
+        A wrapper for the CheckUser class.
+
+        :return: True, if the user was banned.
+        :rtype: bool
+        """
+        if not self.is_client_mod:
+            return False
+
+        judge = check_user.CheckUser(self, user, pinylib.CONFIG)
+
+        if account and user.account != '':
+            log.debug('checking account: %s' % user.account)
+            if not user.is_mod and judge.check_account():
+                return True
+
+            api = pinylib.apis.tinychat.user_info(user.account)
+            if api is not None:
+                user.tinychat_id = api['tinychat_id']
+                user.last_login = api['last_active']
+
+        if guest:
+            log.debug('checking guest entrance: %s:%s' % user.nick)
+            if judge.guest_entry():
+                return True
+
+        if nick and user.nick:
+            log.debug('checking nick: %s' % user.nick)
+            if not user.is_mod and judge.check_nick():
+                return True
+
+        if lurker and user.is_lurker:
+            log.debug('check lurker: %s' % user.nick)
+            if judge.check_lurker():
+                return True
+
+        return False
 
     def on_joined(self, client_info):
         """
@@ -53,6 +92,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
         """
         log.info('user join info: %s' % join_info)
         _user = self.users.add(join_info)
+
         if _user.account:
             if _user.is_owner:
                 _user.user_level = 1
@@ -65,41 +105,16 @@ class TinychatBot(pinylib.TinychatRTCClient):
             else:
                 self.console_write(pinylib.COLOR['bright_yellow'], '%s:%d has account: %s' %
                                    (_user.nick, _user.id, _user.account))
-
-                if _user.account in pinylib.CONFIG.B_ACCOUNT_BANS and self.is_client_mod:
-                    if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
-                        self.send_kick_msg(_user.id)
-                    else:
-                        self.send_ban_msg(_user.id)
-                    self.send_chat_msg('Auto-Banned: (bad account)')
-                else:
-                    tc_info = pinylib.apis.tinychat.user_info(_user.account)
-                    if tc_info is not None:
-                        _user.tinychat_id = tc_info['tinychat_id']
-                        _user.last_login = tc_info['last_active']
-
+            self.user_check(_user, account=True)
         else:
-            if _user.is_lurker and not pinylib.CONFIG.B_ALLOW_LURKERS and self.is_client_mod:
-                if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
-                    self.send_kick_msg(_user.id)
-                else:
-                    self.send_ban_msg(_user.id)
-                self.send_chat_msg('Auto-Banned: (lurkers not allowed)')
-
-            elif not pinylib.CONFIG.B_ALLOW_GUESTS and self.is_client_mod:
-                if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
-                    self.send_kick_msg(_user.id)
-                else:
-                    self.send_ban_msg(_user.id)
-                self.send_chat_msg('Auto-Banned: (guests not allowed)')
-
-        if pinylib.CONFIG.B_GREET and self.is_client_mod:
-            if not _user.nick.startswith('guest-'):
-                if _user.account:
-                    self.send_chat_msg('Welcome to the room %s:%s:%s' %
-                                       (_user.nick, _user.id, _user.account))
-                else:
-                    self.send_chat_msg('Welcome to the room %s:%s' % (_user.nick, _user.id))
+            if not self.user_check(_user, guest=True, nick=True, lurker=True):
+                if pinylib.CONFIG.B_GREET and self.is_client_mod:
+                    if not _user.nick.startswith('guest-'):
+                        if _user.account:
+                            self.send_chat_msg('Welcome to the room %s:%s:%s' %
+                                               (_user.nick, _user.id, _user.account))
+                        else:
+                            self.send_chat_msg('Welcome to the room %s:%s' % (_user.nick, _user.id))
 
         self.console_write(pinylib.COLOR['cyan'], '%s:%d joined the room.' % (_user.nick, _user.id))
 
@@ -115,13 +130,9 @@ class TinychatBot(pinylib.TinychatRTCClient):
         _user = self.users.search(uid)
         old_nick = _user.nick
         _user.nick = nick
+
         if uid != self.client_id:
-            if _user.nick in pinylib.CONFIG.B_NICK_BANS:
-                if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
-                    self.send_kick_msg(uid)
-                else:
-                    self.send_ban_msg(uid)
-            else:
+            if not self.user_check(_user, nick=True):
                 if pinylib.CONFIG.B_GREET and self.is_client_mod:
                     if old_nick.startswith('guest-'):
                         if _user.account:
@@ -130,72 +141,73 @@ class TinychatBot(pinylib.TinychatRTCClient):
                         else:
                             self.send_chat_msg('Welcome to the room %s:%s' % (_user.nick, _user.id))
 
-                self.console_write(pinylib.COLOR['bright_cyan'], '%s:%s Changed nick to: %s' %
-                                   (old_nick, uid, nick))
+            self.console_write(pinylib.COLOR['bright_cyan'], '%s:%s Changed nick to: %s' % (old_nick, uid, nick))
 
     def on_yut_play(self, yt_data):
         """
         Received when a youtube gets started or time searched.
 
-        This also gets received when the client starts a youtube, the information is 
+        This also gets received when the client starts a youtube, the information is
         however ignored in that case.
 
-        :param yt_data: The event information contains info such as the ID (handle) of the user 
+        :param yt_data: The event information contains info such as the ID (handle) of the user
         starting/searching the youtube, the youtube ID, youtube time and so on.
         :type yt_data: dict
         """
-        user_nick = 'n/a'
-        if 'handle' in yt_data:
-            if yt_data['handle'] != self.client_id:
-                _user = self.users.search(yt_data['handle'])
-                user_nick = _user.nick
-
         if self.playlist.has_active_track:
             self.cancel_timer()
 
-        if yt_data['item']['offset'] == 0:
-            # the video was started from the start. (start)
-            _youtube = youtube.video_details(yt_data['item']['id'], False)
-            self.playlist.start(user_nick, _youtube)
-            self.timer(self.playlist.track.time)
-            self.console_write(pinylib.COLOR['bright_magenta'], '%s started youtube video (%s)' %
-                               (user_nick, yt_data['item']['id']))
-        elif yt_data['item']['offset'] > 0:
-            if user_nick == 'n/a':
-                _youtube = youtube.video_details(yt_data['item']['id'], False)
-                self.playlist.start(user_nick, _youtube)
+        track = youtube.video_details(yt_data['item']['id'], False)
+
+        if 'handle' in yt_data:
+            if yt_data['handle'] != self.client_id:
+                _user = self.users.search(yt_data['handle'])
+
+                if yt_data['item']['offset'] == 0:
+                    self.playlist.start(_user.nick, track)
+                    self.timer(track.time)
+                    self.console_write(pinylib.COLOR['bright_magenta'], '%s started youtube video (%s)' %
+                                       (_user.nick, track.title))
+
+                elif yt_data['item']['offset'] > 0:
+                    offset = self.playlist.play(yt_data['item']['offset'])
+                    self.timer(offset)
+                    self.console_write(pinylib.COLOR['bright_magenta'], '%s searched the youtube video to: %s' %
+                                       (_user.nick, int(round(yt_data['item']['offset']))))
+        else:
+            if yt_data['item']['offset'] > 0:
+                self.playlist.start('started before joining.', track)
                 offset = self.playlist.play(yt_data['item']['offset'])
                 self.timer(offset)
-            else:
-                offset = self.playlist.play(yt_data['item']['offset'])
-                self.timer(offset)
-                self.console_write(pinylib.COLOR['bright_magenta'], '%s searched the youtube video to: %s' %
-                                   (user_nick, int(round(yt_data['item']['offset']))))
 
     def on_yut_pause(self, yt_data):
         """
         Received when a youtube gets paused or searched while paused.
 
-        This also gets received when the client pauses or searches while paused, the information is 
+        This also gets received when the client pauses or searches while paused, the information is
         however ignored in that case.
 
-        :param yt_data: The event information contains info such as the ID (handle) of the user 
+        :param yt_data: The event information contains info such as the ID (handle) of the user
         pausing/searching the youtube, the youtube ID, youtube time and so on.
         :type yt_data: dict
         """
+        if self.playlist.has_active_track:
+            self.cancel_timer()
+
+        self.playlist.pause()
+
         if 'handle' in yt_data:
             if yt_data['handle'] != self.client_id:
                 _user = self.users.search(yt_data['handle'])
-                if self.playlist.has_active_track:
-                    self.cancel_timer()
-                self.playlist.pause()
                 self.console_write(pinylib.COLOR['bright_magenta'], '%s paused the video at %s' %
                                    (_user.nick, int(round(yt_data['item']['offset']))))
+        else:
+            log.info('no handle for youtube pause: %s' % yt_data)
 
     def message_handler(self, msg):
         """
         A basic handler for chat messages.
-        
+
         Overrides message_handler in pinylib
         to allow commands.
 
@@ -205,11 +217,8 @@ class TinychatBot(pinylib.TinychatRTCClient):
         prefix = pinylib.CONFIG.B_PREFIX
 
         if msg.startswith(prefix):
-            # Split the message in to parts.
             parts = msg.split(' ')
-            # parts[0] is the command..
             cmd = parts[0].lower().strip()
-            # The rest is a command argument.
             cmd_arg = ' '.join(parts[1:]).strip()
 
             if self.has_level(1):
@@ -387,9 +396,6 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.do_who_plays()
 
                 # Tinychat API commands.
-                elif cmd == prefix + 'spy':
-                    threading.Thread(target=self.do_spy, args=(cmd_arg,)).start()
-
                 elif cmd == prefix + 'acspy':
                     threading.Thread(target=self.do_account_spy, args=(cmd_arg,)).start()
 
@@ -432,7 +438,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
 
     # Level 1 Command methods.
     def do_make_mod(self, account):
-        """ 
+        """
         Make a tinychat account a room moderator.
 
         :param account: The account to make a moderator.
@@ -451,7 +457,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.send_chat_msg('%s was made a room moderator.' % account)
 
     def do_remove_mod(self, account):
-        """ 
+        """
         Removes a tinychat account from the moderator list.
 
         :param account: The account to remove from the moderator list.
@@ -493,7 +499,6 @@ class TinychatBot(pinylib.TinychatRTCClient):
 
     def do_clear_room_bans(self):
         """ Clear all room bans. """
-        # NOTE: This might not be needed in this version
         if self.is_client_owner:
             if self.privacy_.clear_bans():
                 self.send_chat_msg('All room bans was cleared.')
@@ -520,7 +525,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
 
     # Level 3 Command Methods.
     def do_op_user(self, user_name):
-        """ 
+        """
         Lets the room owner, a mod or a bot controller make another user a bot controller.
 
         :param user_name: The user to op.
@@ -538,7 +543,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.send_chat_msg('No user named: %s' % user_name)
 
     def do_deop_user(self, user_name):
-        """ 
+        """
         Lets the room owner, a mod or a bot controller remove a user from being a bot controller.
 
         :param user_name: The user to deop.
@@ -601,8 +606,8 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_lastfm_chart(self, chart_items):
         """
         Create a playlist from the most played tracks on last.fm.
-        
-        :param chart_items: The maximum amount of chart items. 
+
+        :param chart_items: The maximum amount of chart items.
         :type chart_items: str | int
         """
         if self.is_client_mod:
@@ -632,7 +637,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_lastfm_random_tunes(self, max_tracks):
         """
         Creates a playlist from what other people are listening to on last.fm
-        
+
         :param max_tracks: The miximum amount of tracks.
         :type max_tracks: str | int
         """
@@ -663,7 +668,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_search_lastfm_by_tag(self, search_str):
         """
         Search last.fm for tunes matching a tag.
-        
+
         :param search_str: The search tag to search for.
         :type search_str: str
         """
@@ -686,7 +691,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_youtube_playlist_search(self, search_str):
         """
         Search youtube for a playlist.
-        
+
         :param search_str: The search term to search for.
         :type search_str: str
         """
@@ -705,7 +710,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_play_youtube_playlist(self, int_choice):
         """
         Play a previous searched playlist.
-        
+
         :param int_choice: The index of the playlist.
         :type int_choice: str | int
         """
@@ -763,7 +768,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_delete_playlist_item(self, to_delete):  # TODO: Make sure this is working.
         """
         Delete items from the playlist.
-        
+
         :param to_delete: Item indexes to delete.
         :type to_delete: str
         """
@@ -848,7 +853,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_seek_media(self, time_point):
         """
         Time search a track.
-        
+
         :param time_point: The time point in which to search to.
         :type time_point: str
         """
@@ -893,9 +898,9 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.send_chat_msg(_)
 
     def do_youtube_search(self, search_str):
-        """ 
+        """
         Search youtube for a list of matching candidates.
-        
+
         :param search_str: The search term to search for.
         :type search_str: str
         """
@@ -915,7 +920,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_play_youtube_search(self, int_choice):
         """
         Play a track from a previous youtube search list.
-        
+
         :param int_choice: The index of the track in the search.
         :type int_choice: str | int
         """
@@ -951,7 +956,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                            '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n_')
 
     def do_nick(self, new_nick):
-        """ 
+        """
         Set a new nick for the bot.
 
         :param new_nick: The new nick name.
@@ -965,7 +970,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
             self.set_nick()
 
     def do_kick(self, user_name):
-        """ 
+        """
         Kick a user out of the room.
 
         :param user_name: The username to kick.
@@ -995,7 +1000,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                         self.send_kick_msg(_user.id)
 
     def do_ban(self, user_name):
-        """ 
+        """
         Ban a user from the room.
 
         :param user_name: The username to ban.
@@ -1025,7 +1030,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                         self.send_ban_msg(_user.id)
 
     def do_bad_nick(self, bad_nick):
-        """ 
+        """
         Adds a username to the nick bans file.
 
         :param bad_nick: The bad nick to write to the nick bans file.
@@ -1043,7 +1048,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 self.load_list(nicks=True)
 
     def do_remove_bad_nick(self, bad_nick):
-        """ 
+        """
         Removes nick from the nick bans file.
 
         :param bad_nick: The bad nick to remove from the nick bans file.
@@ -1062,7 +1067,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                         self.load_list(nicks=True)
 
     def do_bad_string(self, bad_string):
-        """ 
+        """
         Adds a string to the string bans file.
 
         :param bad_string: The bad string to add to the string bans file.
@@ -1082,7 +1087,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 self.load_list(strings=True)
 
     def do_remove_bad_string(self, bad_string):
-        """ 
+        """
         Removes a string from the string bans file.
 
         :param bad_string: The bad string to remove from the string bans file.
@@ -1101,7 +1106,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                         self.load_list(strings=True)
 
     def do_bad_account(self, bad_account_name):
-        """ 
+        """
         Adds an account name to the account bans file.
 
         :param bad_account_name: The bad account name to add to the account bans file.
@@ -1122,7 +1127,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 self.load_list(accounts=True)
 
     def do_remove_bad_account(self, bad_account):
-        """ 
+        """
         Removes an account from the account bans file.
 
         :param bad_account: The badd account name to remove from account bans file.
@@ -1141,7 +1146,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                         self.load_list(accounts=True)
 
     def do_list_info(self, list_type):
-        """ 
+        """
         Shows info of different lists/files.
 
         :param list_type: The type of list to find info for.
@@ -1178,7 +1183,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                             self.send_chat_msg('Moderators: ' + mods)
 
     def do_user_info(self, user_name):
-        """ 
+        """
         Shows user object info for a given user name.
 
         :param user_name: The user name of the user to show the info for.
@@ -1283,7 +1288,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.send_private_msg(self.active_user.id, '%s %s' %
                                           (track.title, self.format_time(track.time)))
             else:
-                self.send_private_msg(self.active_user.nick, 'No track playing.')
+                self.send_private_msg(self.active_user.id, 'No track playing.')
 
     def do_who_plays(self):
         """ Show who requested the currently playing track. """
@@ -1314,7 +1319,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
         self.send_private_msg(self.active_user.id, 'How can i help you %s?' % self.active_user.nick)
 
     def do_play_youtube(self, search_str):
-        """ 
+        """
         Plays a youtube video matching the search term.
 
         :param search_str: The search term.
@@ -1341,32 +1346,8 @@ class TinychatBot(pinylib.TinychatRTCClient):
                         self.timer(track.time)
 
     # == Tinychat API Command Methods. ==
-    def do_spy(self, roomname):
-        """ 
-        Shows info for a given room.
-
-        :param roomname: The room name to find spy info for.
-        :type roomname: str
-        """
-        if self.is_client_mod:
-            if len(roomname) is 0:
-                self.send_chat_msg('Missing room name.')
-            else:
-                spy_info = pinylib.apis.tinychat.spy_info(roomname)
-                if spy_info is None:
-                    self.send_chat_msg('Failed to retrieve information.')
-                elif 'error' in spy_info:
-                    self.send_chat_msg(spy_info['error'])
-                else:
-                    self.send_chat_msg('Mods: %s, \nBroadcasters: %s, \nUsers: %s' %
-                                       (spy_info['mod_count'], spy_info['broadcaster_count'],
-                                        spy_info['total_count']))
-                    if self.has_level(3):
-                        users = ', '.join(spy_info['users'])
-                        self.send_chat_msg(users)
-
     def do_account_spy(self, account):
-        """ 
+        """
         Shows info about a tinychat account.
 
         :param account: tinychat account.
@@ -1385,7 +1366,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
 
     # == Other API Command Methods. ==
     def do_search_urban_dictionary(self, search_str):
-        """ 
+        """
         Shows urbandictionary definition of search string.
 
         :param search_str: The search string to look up a definition for.
@@ -1407,7 +1388,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                         self.send_chat_msg(urban)
 
     def do_weather_search(self, search_str):
-        """ 
+        """
         Shows weather info for a given search string.
 
         :param search_str: The search string to find weather data for.
@@ -1423,7 +1404,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 self.send_chat_msg(weather)
 
     def do_whois_ip(self, ip_str):
-        """ 
+        """
         Shows whois info for a given ip address or domain.
 
         :param ip_str: The ip address or domain to find info for.
@@ -1446,7 +1427,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
             self.send_chat_msg(chuck)
 
     def do_8ball(self, question):
-        """ 
+        """
         Shows magic eight ball answer to a yes/no question.
 
         :param question: The yes/no question.
@@ -1468,10 +1449,10 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def private_message_handler(self, private_msg):
         """
         Private message handler.
-        
+
         Overrides private_message_handler in pinylib
         to enable private commands.
-        
+
         :param private_msg: The private message.
         :type private_msg: str
         """
@@ -1513,7 +1494,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_key(self, new_key):
         """
         Shows or sets a new secret bot controller key.
-        
+
         :param new_key: The new secret key.
         :type new_key: str
         """
@@ -1549,7 +1530,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def do_opme(self, key):
         """
         Make a user a bot controller if the correct key is provided.
-        
+
         :param key: The secret bot controller key.
         :type key: str
         """
@@ -1587,9 +1568,9 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def timer(self, event_time):
         """
         Track event timer.
-        
+
         This will cause an event to occur once the time is done.
-        
+
         :param event_time: The time in seconds for when an event should occur.
         :type event_time: int | float
         """
@@ -1625,7 +1606,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     def load_list(self, nicks=False, accounts=False, strings=False):
         """
         Loads different list to memory.
-        
+
         :param nicks: bool, True load nick bans file.
         :param accounts: bool, True load account bans file.
         :param strings: bool, True load ban strings file.
@@ -1641,7 +1622,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                                                                             pinylib.CONFIG.B_STRING_BANS_FILE_NAME)
 
     def has_level(self, level):
-        """ 
+        """
         Checks the active user for correct user level.
 
         :param level: The level to check the active user against.
@@ -1657,7 +1638,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
 
     @staticmethod
     def format_time(time_stamp, is_milli=False):
-        """ 
+        """
         Converts a time stamp as seconds or milliseconds to (day(s)) hours minutes seconds.
 
         :param time_stamp: Seconds or milliseconds to convert.
@@ -1681,7 +1662,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
         return human_time
 
     def check_msg(self, msg):
-        """ 
+        """
         Checks the chat message for ban string.
 
         :param msg: The chat message.
@@ -1695,7 +1676,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 if _ in msg:
                     should_be_banned = True
             elif bad in chat_words:
-                    should_be_banned = True
+                should_be_banned = True
         if should_be_banned:
             if pinylib.CONFIG.B_USE_KICK_AS_AUTOBAN:
                 self.send_kick_msg(self.active_user.id)

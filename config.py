@@ -3,7 +3,7 @@ ACCOUNT = ''
 # Password for account
 PASSWORD = ''
 # Fallback rtc version.
-FALLBACK_RTC_VERSION = '2.0.10-296'
+FALLBACK_RTC_VERSION = '2.0.22-4'
 # Log chat messages and events.
 CHAT_LOGGING = False
 # Show additional info/errors in console.

@@ -1,20 +1,6 @@
 import time
 
 
-class Track:
-    """ A class representing a track. """
-    def __init__(self, nick=None, **kwargs):
-        self.owner = nick
-        self.rq_time = time.time()
-        self.id = kwargs.get('video_id')
-        self.type = kwargs.get('type')
-        self.title = kwargs.get('video_title')
-        self.time = float(kwargs.get('video_time', 0))
-        self.image = kwargs.get('image')
-        self.start_time = 0
-        self.pause_time = 0
-
-
 class PlayList:
     """ Class to do various playlist operation with. """
     def __init__(self):
@@ -82,8 +68,8 @@ class PlayList:
         """
         if self.current_track is not None:
             if self.is_paused:
-                return self.current_track.pause_time
-            elapsed = time.time() - self.current_track.start_time
+                return self.current_track.pause
+            elapsed = time.time() - self.current_track.start
             if elapsed > self.current_track.time:
                 return 0
             return elapsed
@@ -114,7 +100,7 @@ class PlayList:
             if self.track_index <= len(self.track_list):  # self.last_index:
                 next_track = self.track_list[self.track_index]
                 self.current_track = next_track
-                self.current_track.start_time = time.time()
+                self.current_track.start = time.time()
                 self.track_index += 1
                 return next_track
             return None
@@ -152,15 +138,16 @@ class PlayList:
         
         :param owner: The nick of the user who started the track.
         :type owner: str
-        :param track: The track data.
-        :type track: dict
+        :param track: The Track object.
+        :type track: Track
         :return: The track as a Track.
         :rtype: Track
         """
         if self.is_paused:
             self.is_paused = False
-        self.current_track = Track(owner, **track)
-        self.current_track.start_time = time.time()
+        self.current_track = track
+        self.current_track.owner = owner
+        self.current_track.start = time.time()
         return self.current_track
 
     def play(self, offset):
@@ -174,7 +161,7 @@ class PlayList:
         """
         if self.is_paused:
             self.is_paused = False
-        self.current_track.start_time = time.time() - offset
+        self.current_track.start = time.time() - offset
         return self.remaining
 
     def replay(self):  # TODO: check if this is working correct.
@@ -186,7 +173,7 @@ class PlayList:
         """
         if self.is_paused:
             self.is_paused = False
-        self.current_track.start_time = time.time()
+        self.current_track.start = time.time()
         return self.current_track
 
     def pause(self, offset=0):
@@ -198,15 +185,15 @@ class PlayList:
         """
         self.is_paused = True
         if offset != 0:
-            self.current_track.pause_time = offset
+            self.current_track.pause = offset
         else:
-            self.current_track.pause_time = time.time() - self.current_track.start_time
+            self.current_track.pause = time.time() - self.current_track.start
 
     def stop(self):
         """ Stop a track. """
         self.is_paused = False
-        self.current_track.start_time = 0
-        self.current_track.pause_time = 0
+        self.current_track.start = 0
+        self.current_track.pause = 0
 
     def add(self, owner, track):
         """
@@ -214,15 +201,15 @@ class PlayList:
         
         :param owner: The nick name of the user adding the track.
         :type owner: str
-        :param track: The track data.
-        :type track: dict
+        :param track: The Track object.
+        :type track: Track
         :return: The track as Track.
         :rtype: Track
         """
-        if track is not None:
-            _track = Track(owner, **track)
-            self.track_list.append(_track)
-            return _track
+        if track.id:
+            track.owner = owner
+            self.track_list.append(track)
+            return track
 
     def add_list(self, owner, tracks):
         """
@@ -230,7 +217,7 @@ class PlayList:
         
         :param owner: The nick name of the user adding the tracks.
         :type owner: str
-        :param tracks: A list of track data.
+        :param tracks: A list of Track objects.
         :type tracks: list
         """
         if len(tracks) > 0:
@@ -258,7 +245,7 @@ class PlayList:
         :type amount: int
         :param from_index: Get Track's from the current track list index.
         :type from_index: bool
-        :return: A list of Track's.
+        :return: A list of Track objects.
         :rtype: list
         """
         start_index = 0
@@ -312,7 +299,7 @@ class PlayList:
             if by_range:
                 _result['from'] = deleted_indexes[0]
                 _result['to'] = deleted_indexes[-1]
-            elif len(deleted_indexes) is 1:
+            elif len(deleted_indexes) == 1:
                 _result['track_title'] = tracks[int(deleted_indexes[0])].title
             _result['deleted_indexes'] = deleted_indexes
             _result['deleted_indexes_len'] = len(deleted_indexes)
