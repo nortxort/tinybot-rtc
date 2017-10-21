@@ -8,7 +8,6 @@ class CheckUser:
     and other ban rules in the config file.
 
     If a test is True, then the user will be banned.
-    As default moderator accounts and nicks are not checked.
     """
     def __init__(self, tinybot, user, conf):
         """
