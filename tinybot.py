@@ -49,7 +49,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 user.last_login = api['last_active']
 
         if guest:
-            log.debug('checking guest entrance: %s:%s' % user.nick)
+            log.debug('checking guest entrance: %s' % user.nick)
             if judge.guest_entry():
                 return True
 
