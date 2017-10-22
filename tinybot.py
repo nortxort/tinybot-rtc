@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 import check_user
 
-__version__ = '2.0.0'
+__version__ = '2.0.1'
 log = logging.getLogger(__name__)
 
 
@@ -105,16 +105,15 @@ class TinychatBot(pinylib.TinychatRTCClient):
             else:
                 self.console_write(pinylib.COLOR['bright_yellow'], '%s:%d has account: %s' %
                                    (_user.nick, _user.id, _user.account))
-            self.user_check(_user, account=True)
-        else:
-            if not self.user_check(_user, guest=True, nick=True, lurker=True):
-                if pinylib.CONFIG.B_GREET and self.is_client_mod:
-                    if not _user.nick.startswith('guest-'):
-                        if _user.account:
-                            self.send_chat_msg('Welcome to the room %s:%s:%s' %
-                                               (_user.nick, _user.id, _user.account))
-                        else:
-                            self.send_chat_msg('Welcome to the room %s:%s' % (_user.nick, _user.id))
+
+        if not self.user_check(_user, account=True, guest=True, nick=True, lurker=True):
+            if pinylib.CONFIG.B_GREET and self.is_client_mod:
+                if not _user.nick.startswith('guest-'):
+                    if _user.account:
+                        self.send_chat_msg('Welcome to the room %s:%s:%s' %
+                                           (_user.nick, _user.id, _user.account))
+                    else:
+                        self.send_chat_msg('Welcome to the room %s:%s' % (_user.nick, _user.id))
 
         self.console_write(pinylib.COLOR['cyan'], '%s:%d joined the room.' % (_user.nick, _user.id))
 
