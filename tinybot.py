@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 import check_user
 
-__version__ = '2.0.1'
+__version__ = '2.0.2'
 log = logging.getLogger(__name__)
 
 
@@ -20,6 +20,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
     playlist = tracklist.PlayList()
     search_list = []
     is_search_list_yt_playlist = False
+    bl_search_list = []
 
     @property
     def config_path(self):
@@ -368,6 +369,12 @@ class TinychatBot(pinylib.TinychatRTCClient):
 
                 elif cmd == prefix + 'close':
                     self.do_close_broadcast(cmd_arg)
+
+                elif cmd == prefix + 'sbl':
+                    self.do_banlist_search(cmd_arg)
+
+                elif cmd == prefix + 'fg':
+                    self.do_forgive(cmd_arg)
 
             if (pinylib.CONFIG.B_PUBLIC_CMD and self.has_level(5)) or self.active_user.user_level < 5:
                 if cmd == prefix + 'v':
@@ -1173,6 +1180,19 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     else:
                         self.send_chat_msg('%s account bans in list.' % pinylib.CONFIG.B_ACCOUNT_BANS)
 
+                elif list_type.lower() == 'bl':
+                    if len(self.users.banned_users) == 0:
+                        self.send_chat_msg('The banlist is empty.')
+                    else:
+                        _ban_list = '\n'.join('(%s) %s:%s [%s]' %
+                                              (i, banned_user.nick, banned_user.account, banned_user.ban_id)
+                                              for i, banned_user in enumerate(self.users.banned_users))
+                        if len(_ban_list) > 150:  # maybe have a B_MAX_MSG_LENGTH in config
+                            # use string_util.chunk_string
+                            pass
+                        else:
+                            self.send_chat_msg(_ban_list)
+
                 elif list_type.lower() == 'mods':
                     if self.is_client_owner:
                         if len(self.privacy_.room_moderators) is 0:
@@ -1248,6 +1268,53 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.send_close_user_msg(_user.id)
                 else:
                     self.send_chat_msg('No user named: %s' % user_name)
+
+    def do_banlist_search(self, user_name):
+        """
+        Search the banlist for matches.
+
+        :param user_name: The user name or partial username to search for.
+        :type user_name: str
+        """
+        if self.is_client_mod:
+            if len(user_name) == 0:
+                self.send_chat_msg('Missing user name to search for.')
+            else:
+                self.bl_search_list = self.users.search_banlist_containing(user_name)
+                if len(self.bl_search_list) == 0:
+                    self.send_chat_msg('No banlist matches.')
+                else:
+                    _ban_list_info = '\n'.join('(%s) %s:%s [%s]' % (i, user.nick, user.account, user.ban_id)
+                                               for i, user in enumerate(self.bl_search_list))
+                    # maybe user string_util.chunk_string here
+                    self.send_chat_msg(_ban_list_info)
+
+    def do_forgive(self, user_index):
+        """
+        Forgive a user from the ban list search.
+
+        NOTE:
+
+        :param user_index: The index in the ban list search.
+        :type user_index: str | int
+        """
+        if self.is_client_mod:
+            try:
+                user_index = int(user_index)
+            except ValueError:
+                self.send_chat_msg('Only numbers allowed (%s)' % user_index)
+            else:
+                if len(self.bl_search_list) > 0:
+                    if user_index <= len(self.bl_search_list) - 1:
+                        self.send_unban_msg(self.bl_search_list[user_index].ban_id)
+                    else:
+                        if len(self.bl_search_list) > 1:
+                            self.send_chat_msg(
+                                'Please make a choice between 0-%s' % len(self.bl_search_list))
+                else:
+                    self.send_chat_msg('The ban search is empty.')
+
+            # self.bl_search_list[:] = []
 
     # Public (Level 5) Command Methods.
     def do_playlist_status(self):
