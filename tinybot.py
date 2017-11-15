@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 import check_user
 
-__version__ = '2.0.2'
+__version__ = '2.0.3'
 log = logging.getLogger(__name__)
 
 
@@ -375,6 +375,9 @@ class TinychatBot(pinylib.TinychatRTCClient):
 
                 elif cmd == prefix + 'fg':
                     self.do_forgive(cmd_arg)
+
+                elif cmd == prefix + 'unb':
+                    self.do_unban(cmd_arg)
 
             if (pinylib.CONFIG.B_PUBLIC_CMD and self.has_level(5)) or self.active_user.user_level < 5:
                 if cmd == prefix + 'v':
@@ -1273,6 +1276,10 @@ class TinychatBot(pinylib.TinychatRTCClient):
         """
         Search the banlist for matches.
 
+        NOTE: This method/command was meant to be a private message command,
+        but it seems like the private messages is broken, so for now
+        it will be a room command.
+
         :param user_name: The user name or partial username to search for.
         :type user_name: str
         """
@@ -1293,7 +1300,9 @@ class TinychatBot(pinylib.TinychatRTCClient):
         """
         Forgive a user from the ban list search.
 
-        NOTE:
+        NOTE: This method/command was meant to be a private message command,
+        but it seems like the private messages is broken, so for now
+        it will be a room command.
 
         :param user_index: The index in the ban list search.
         :type user_index: str | int
@@ -1315,6 +1324,31 @@ class TinychatBot(pinylib.TinychatRTCClient):
                     self.send_chat_msg('The ban search is empty.')
 
             # self.bl_search_list[:] = []
+
+    def do_unban(self, user_name):
+        """
+        Un-ban the last banned user or a user by user name.
+
+        NOTE: experimental. In case the user name match more than one
+        user in the banlist, then the last banned user will be unbanned.
+
+        :param user_name: The exact user name to unban.
+        :type user_name: str
+        """
+        if len(user_name.strip()) == 0:
+            self.send_chat_msg('Missing user name.')
+        elif user_name == '/':  # shortcut to the last banned user.
+            last_banned_user = self.users.last_banned
+            if last_banned_user is not None:
+                self.send_unban_msg(last_banned_user.ban_id)
+            else:
+                self.send_chat_msg('Failed to find the last banned user.')
+        else:
+            banned_user = self.users.search_banlist_by_nick(user_name)
+            if banned_user is not None:
+                self.send_unban_msg(banned_user.ban_id)
+            else:
+                self.send_chat_msg('No user named: %s in the banlist.' % user_name)
 
     # Public (Level 5) Command Methods.
     def do_playlist_status(self):
