@@ -1335,20 +1335,21 @@ class TinychatBot(pinylib.TinychatRTCClient):
         :param user_name: The exact user name to unban.
         :type user_name: str
         """
-        if len(user_name.strip()) == 0:
-            self.send_chat_msg('Missing user name.')
-        elif user_name == '/':  # shortcut to the last banned user.
-            last_banned_user = self.users.last_banned
-            if last_banned_user is not None:
-                self.send_unban_msg(last_banned_user.ban_id)
+        if self.is_client_mod:
+            if len(user_name.strip()) == 0:
+                self.send_chat_msg('Missing user name.')
+            elif user_name == '/':  # shortcut to the last banned user.
+                last_banned_user = self.users.last_banned
+                if last_banned_user is not None:
+                    self.send_unban_msg(last_banned_user.ban_id)
+                else:
+                    self.send_chat_msg('Failed to find the last banned user.')
             else:
-                self.send_chat_msg('Failed to find the last banned user.')
-        else:
-            banned_user = self.users.search_banlist_by_nick(user_name)
-            if banned_user is not None:
-                self.send_unban_msg(banned_user.ban_id)
-            else:
-                self.send_chat_msg('No user named: %s in the banlist.' % user_name)
+                banned_user = self.users.search_banlist_by_nick(user_name)
+                if banned_user is not None:
+                    self.send_unban_msg(banned_user.ban_id)
+                else:
+                    self.send_chat_msg('No user named: %s in the banlist.' % user_name)
 
     # Public (Level 5) Command Methods.
     def do_playlist_status(self):
