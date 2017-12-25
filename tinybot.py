@@ -270,7 +270,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 elif cmd == prefix + 'pub':
                     self.do_public_cmds()
 
-                elif cmd == prefix == 'kab':
+                elif cmd == prefix + 'kab':
                     self.do_kick_as_ban()
 
                 elif cmd == prefix + 'rs':
