@@ -1,5 +1,7 @@
 ## Tinybot-rtc
 
+**Officially unmaintained 1/2018**
+
 An extension module for the pinylib-rtc module.
 
 This version is bassicly the same as the original tinybot, some commands have been removed as they simply aren't available in this protocol, atleast not yet.
