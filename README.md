@@ -24,11 +24,6 @@ Next download [pinylib-rtc](https://github.com/nortxort/pinylib-rtc/archive/mast
 
 Run tinybot-rtc by typing `python path\to\bot_client.py` in a command prompt.
 
-## Submitting an issue.
-
-Since i rarely use tinychat, not much testing have been done. For now i will keep the issues open, but there is probably a better chance of fixing an issue yourself.
-
-
 ## Author
 
 * [nortxort](https://github.com/nortxort)
