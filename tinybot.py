@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 import check_user
 
-__version__ = '2.0.3'
+__version__ = '2.0.3.3'
 log = logging.getLogger(__name__)
 
 
@@ -154,13 +154,14 @@ class TinychatBot(pinylib.TinychatRTCClient):
         starting/searching the youtube, the youtube ID, youtube time and so on.
         :type yt_data: dict
         """
-        if self.playlist.has_active_track:
-            self.cancel_timer()
-
         track = youtube.video_details(yt_data['item']['id'], False)
 
         if 'handle' in yt_data:
             if yt_data['handle'] != self.client_id:
+
+                if self.playlist.has_active_track:
+                    self.cancel_timer()
+
                 _user = self.users.search(yt_data['handle'])
 
                 if yt_data['item']['offset'] == 0:
@@ -191,13 +192,13 @@ class TinychatBot(pinylib.TinychatRTCClient):
         pausing/searching the youtube, the youtube ID, youtube time and so on.
         :type yt_data: dict
         """
-        if self.playlist.has_active_track:
-            self.cancel_timer()
-
-        self.playlist.pause()
-
         if 'handle' in yt_data:
             if yt_data['handle'] != self.client_id:
+
+                if self.playlist.has_active_track:
+                    self.cancel_timer()
+                self.playlist.pause()
+
                 _user = self.users.search(yt_data['handle'])
                 self.console_write(pinylib.COLOR['bright_magenta'], '%s paused the video at %s' %
                                    (_user.nick, int(round(yt_data['item']['offset']))))
