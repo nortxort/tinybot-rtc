@@ -10,7 +10,7 @@ from page import privacy
 from apis import youtube, lastfm, other, locals_
 import check_user
 
-__version__ = '2.0.3.3'
+__version__ = '2.0.3.4'
 log = logging.getLogger(__name__)
 
 
@@ -95,6 +95,15 @@ class TinychatBot(pinylib.TinychatRTCClient):
         _user = self.users.add(join_info)
 
         if _user.account:
+            tc_info = apis.tinychat.user_info(_user.account)
+
+            if tc_info is not None:
+                _user.biography = tc_info['biography']
+                _user.gender = tc_info['gender']
+                _user.age = tc_info['age']
+                _user.location = tc_info['location']
+                _user.role = tc_info['role']
+
             if _user.is_owner:
                 _user.user_level = 1
                 self.console_write(pinylib.COLOR['red'], 'Room Owner %s:%d:%s' %
@@ -1220,22 +1229,27 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 if _user is None:
                     self.send_chat_msg('No user named: %s' % user_name)
                 else:
-                    if _user.account and _user.tinychat_id is None:
+                    if _user.role is None:
                         user_info = pinylib.apis.tinychat.user_info(_user.account)
                         if user_info is not None:
-                            _user.tinychat_id = user_info['tinychat_id']
-                            _user.last_login = user_info['last_active']
+                            _user.biography = tc_info['biography']
+                            _user.gender = tc_info['gender']
+                            _user.age = tc_info['age']
+                            _user.location = tc_info['location']
+                            _user.role = tc_info['role']
                     online_time = (pinylib.time.time() - _user.join_time)
 
                     info = [
-                        'User Level: ' + str(_user.user_level),
+                        'User Level: %s' % _user.user_level,
                         'Online Time: ' + self.format_time(online_time),
-                        'Last Message: ' + str(_user.last_msg)
+                        'Last Message: %s' % _user.last_msg
                     ]
-                    if _user.tinychat_id is not None:
-                        info.append('Account: ' + str(_user.account))
-                        info.append('Tinychat ID: ' + str(_user.tinychat_id))
-                        info.append('Last Login: ' + _user.last_login)
+                    if _user.role is not None:
+                        info.append('Role: %s' % _user.role)
+                        info.append('Age: %s' % _user.age)
+                        info.append('Gender: %s' % _user.gender)
+                        info.append('Location: %s' % _user.location)
+                        info.append('biography %s' % _user.biography)
 
                     self.send_chat_msg('\n'.join(info))
 
@@ -1463,8 +1477,13 @@ class TinychatBot(pinylib.TinychatRTCClient):
                 if tc_usr is None:
                     self.send_chat_msg('Could not find tinychat info for: %s' % account)
                 else:
-                    self.send_chat_msg('ID: %s, \nLast Login: %s' %
-                                       (tc_usr['tinychat_id'], tc_usr['last_active']))
+                    account_info = [
+                        'Age: %s' % tc_usr['age'],
+                        'Gender: %s' % tc_usr['gender'],
+                        'Role: %s' % tc_usr['role'],
+                        'Location: %s' % tc_usr['location']
+                    ]
+                    self.send_chat_msg('\n'.join(account_info))
 
     # == Other API Command Methods. ==
     def do_search_urban_dictionary(self, search_str):
