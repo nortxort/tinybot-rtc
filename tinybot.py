@@ -95,7 +95,7 @@ class TinychatBot(pinylib.TinychatRTCClient):
         _user = self.users.add(join_info)
 
         if _user.account:
-            tc_info = apis.tinychat.user_info(_user.account)
+            tc_info = pinylib.apis.tinychat.user_info(_user.account)
 
             if tc_info is not None:
                 _user.biography = tc_info['biography']
